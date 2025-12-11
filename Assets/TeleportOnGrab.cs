@@ -9,12 +9,17 @@ public class TeleportOnGrab : MonoBehaviour
     public TeleportationProvider teleportProvider;
     public Transform destinationTransform;
 
+    // --- NEW: Objective Change Variable ---
+    [Header("Objective Update")]
+    [Tooltip("The new objective text to display after teleporting.")]
+    public string newObjectiveText = "Find the next challenge in this area!";
+    // -------------------------------------
+
     void Start()
     {
-        // Get the required component on this object
         grabInteractable = GetComponent<XRGrabInteractable>();
 
-        // Ensure all references are assigned (Error checking from before)
+        // Ensure all references are assigned
         if (grabInteractable == null || teleportProvider == null || destinationTransform == null)
         {
             Debug.LogError("Required components/references are missing on " + gameObject.name);
@@ -24,6 +29,12 @@ public class TeleportOnGrab : MonoBehaviour
 
         // Subscribe to the Select Entered event (fires when the object is successfully grabbed)
         grabInteractable.selectEntered.AddListener(OnGrabbedAndTeleport);
+
+        // --- NEW: Initial Check for Objective Manager ---
+        if (ObjectiveManager.Instance == null)
+        {
+            Debug.LogError("ObjectiveManager.Instance is not found. The objective will not update.");
+        }
     }
 
     private void OnGrabbedAndTeleport(SelectEnterEventArgs args)
@@ -37,14 +48,18 @@ public class TeleportOnGrab : MonoBehaviour
         };
         teleportProvider.QueueTeleportRequest(request);
 
+        // --- NEW: UPDATE THE OBJECTIVE ---
+        if (ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.UpdateObjective(newObjectiveText);
+        }
+        // -------------------------------------
+
         // 2. **Force the Interactor to Drop the Object**
-        // This tells the Interaction Manager to end the selection relationship
-        // between the interactor (the hand) and the interactable (the object).
         grabInteractable.interactionManager.SelectExit(args.interactorObject, grabInteractable);
 
-        // Note: You could alternatively disable the object here if you only want 
-        // the teleport to happen once and the object to disappear.
-        // gameObject.SetActive(false);
+        // OPTIONAL: If this should only happen once, disable the interactable/object
+        // grabInteractable.enabled = false;
     }
 
     void OnDestroy()
